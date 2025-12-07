@@ -1,0 +1,6 @@
+Package: proxmox-tools-sio
+Version: 1.0
+Maintainer: Kevin HUET <kevin.huet@lyceefulbert.fr>
+Architecture: all
+Depends: proxmox-ve
+Description: Outil de manipulation de cluster proxmox de BTS SIO Centre-Val-de-Loir

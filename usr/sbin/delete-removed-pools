@@ -1,0 +1,31 @@
+#!/bin/bash
+# Script : delete-etudiant-pools
+# Date : 02/12/2025
+# Version proxmox : 9.0
+# Description :
+#   - Eteint les VMs des pools marqué "removed"
+#   - Supprime les VMs des pools marqué "removed"
+#   - Supprime les pools marqué "removed"
+# ----------------------------------------------------------------------
+
+
+RMPREFIX="removed-"           # Préfixe des pool supprimés
+
+
+echo "[$(date)] Suppression des pools obsolètes"
+
+
+for POOL in $(pveum pool list --noborder | awk '{print $1}' | grep "$RMPREFIX"); do
+
+    # Extinction des VMs appartenant au pool
+    VMLIST=$(pvesh get /pools/$POOL --noborder | grep members | grep -o '"id":"qemu/[0-9]\+"' | cut -d'/' -f2 | tr -d '"')
+
+    for VMID in $VMLIST; do
+      echo "Extinction et suppression de la VM $VMID..."
+      qm stop "$VMID" 2>/dev/null
+	  qm destroy "$VMID" 2>/dev/null
+      
+    done
+
+    pveum pool delete $POOL
+done

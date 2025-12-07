@@ -1,0 +1,89 @@
+#!/bin/bash
+# Script : sync-etudiant-pools
+# Date : 12/10/2025
+# Version proxmox : 9.0
+# Description :
+#   - Crée un pool par étudiant (membre du groupe dans $GROUP) s’il n’existe pas
+#   - Assigne le role dans $ROLE
+#   - Marque les pools à supprimer pour les étudiants plus membres
+#   - Eteint les VMs des etudiants plus membres
+# ----------------------------------------------------------------------
+
+REALM="adsio"                # Nom du realm AD dans Proxmox
+GROUP="proxmox-etudiant"     # Nom du groupe AD
+ROLE="etudiant"              # Rôle Proxmox attribué à chaque étudiant
+TMPFILE="/tmp/etudiants"     # Fichier temporaire de travail
+PREFIX="etudiant-"           # Préfixe des pool
+RMPREFIX="removed-"           # Préfixe des pool supprimés
+
+
+echo "[$(date)] Synchronisation des pools étudiants ($GROUP@$REALM)"
+
+#Vérification  de l'existence du groupe
+if ! pveum group list | grep -q "$GROUP-$REALM"; then
+  echo "Erreur : Groupe $GROUP@$REALM introuvable!"
+  exit 1
+fi
+
+# Récupération des membres du groupe
+pvesh get /access/groups --human-readable 0 --noborder | grep "$GROUP-$REALM"| awk '{print $2}' | tr ',' '\n' > "$TMPFILE"
+
+if [ ! -s "$TMPFILE" ]; then
+  echo "Aucun membre trouvé ($GROUP@$REALM)."
+  exit 0
+fi
+
+echo "$(wc -l < "$TMPFILE") utilisateurs dans le groupe $GROUP@$REALM."
+
+# Création des pools et application du role
+while read -r USER; do
+  USERNAME="${USER%@*}"
+  POOLNAME="$PREFIX$USERNAME"
+
+  # Création du pool s'il n'existe pas déjà
+  if ! pveum pool list --noborder | awk '{print $1}' | grep -q "$POOLNAME"; then
+    echo "Création du pool $POOLNAME pour $USER"
+    pveum pool add "$POOLNAME" --comment "Pool utilisateur $USER"
+  fi
+
+  # Ajout du rôle si pas déjà attribué
+  if ! pveum acl list --noborder | grep -q "/pool/$POOLNAME"; then
+    echo "Application du rôle $ROLE sur /pool/$POOLNAME pour $USERNAME"
+    pveum acl modify "/pool/$POOLNAME" --users "$USERNAME@$REALM" --role "$ROLE" --propagate 0
+  fi
+
+done < "$TMPFILE"
+
+echo "Pools créés"
+
+
+# Marquage des pools et extinction des VMs des utilisateurs plus membres
+echo "Marquage des pools obsolètes"
+
+for POOL in $(pveum pool list --noborder | awk '{print $1}' | grep "$PREFIX"); do
+  USERNAME="${POOL#$PREFIX}"
+  USERFULL="$USERNAME@$REALM"
+
+  # Utilisateur plus membre du groupe
+
+  if ! grep -q "$USERFULL" "$TMPFILE"; then
+    echo "Utilisateur $USERFULL non membre du groupe)"
+
+    # Creation du pool d'archivage si non vide
+    pveum pool add "$RMPREFIX-$USERNAME" --comment "Pool supprimé $USER"
+
+    # Extinction des VMs appartenant au pool
+    VMLIST=$(pvesh get /pools/$POOL --noborder | grep members | grep -o '"id":"qemu/[0-9]\+"' | cut -d'/' -f2 | tr -d '"')
+
+    for VMID in $VMLIST; do
+      echo "Extinction et déplacement de la VM $VMID..."
+      qm stop "$VMID" 2>/dev/null
+      pveum pool modify "$RMPREFIX-$USERNAME" --vms $VMID --allow-move 1
+    done
+
+    pveum pool delete $POOL
+  fi
+done
+
+rm $TMPFILE
+echo "Synchronisation terminée pour le groupe $GROUP@$REALM ."

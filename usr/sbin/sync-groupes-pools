@@ -1,0 +1,86 @@
+#!/bin/bash
+# Script : sync-groupes-pools
+# Date : 05/12/2025
+# Version proxmox : 9.0
+# Description :
+#   - Crée un pool par groupe commençant par proxmox-
+#   - Assigne le role dans $ROLE
+#   - Marque les pools à supprimer pour groupes supprimés
+#   - Eteint les VMs pour groupes supprimés
+# ----------------------------------------------------------------------
+
+REALM="adsio"               					 # Nom du realm AD dans Proxmox
+ADGROUP="proxmox-"     							 # Préfixe des groupes AD
+EXCLUDE="etudiant|referent|enseignant|admin"	 # Groupes exclus pour la création de pools
+ROLE="etudiant"              					 # Rôle Proxmox attribué au groupe
+TMPFILE="/tmp/groupes"    					 		# Fichier temporaire de travail
+PREFIX="groupe-"           						 # Préfixe des pool
+RMPREFIX="removed-"          					 # Préfixe des pool supprimés
+
+
+echo "[$(date)] Synchronisation des pools de groupes (@$REALM)"
+
+
+# Récupération des groupes
+pveum group list --human-readable 0 --noborder | grep "proxmox-" | awk '{print $1}' | grep -Ev '^(proxmox-(etudiant|referent|enseignant|admin))' > "$TMPFILE"
+
+if [ ! -s "$TMPFILE" ]; then
+  echo "Aucun groupe trouvé (@$REALM)."
+  exit 0
+fi
+
+echo "$(wc -l < "$TMPFILE") groupes @$REALM."
+
+# Création des pools et application du role
+while read -r GROUP; do
+  GROUPNAME="${GROUP#proxmox-}"
+  GROUPNAME="${GROUPNAME%-adsio}"
+  POOLNAME="$PREFIX$GROUPNAME"
+
+  # Création du pool s'il n'existe pas déjà
+  if ! pveum pool list --noborder | awk '{print $1}' | grep -q "$POOLNAME"; then
+    echo "Création du pool $POOLNAME pour $GROUPNAME"
+    pveum pool add "$POOLNAME" --comment "Pool groupe $GROUPNAME"
+  fi
+
+  # Ajout du rôle si pas déjà attribué
+  if ! pveum acl list --noborder | grep -q "/pool/$POOLNAME"; then
+    echo "Application du rôle $ROLE sur /pool/$POOLNAME pour $GROUPNAME"
+    pveum acl modify "/pool/$POOLNAME" --groups "$GROUP" --role "$ROLE" --propagate 0
+  fi
+
+done < "$TMPFILE"
+
+echo "Pools créés"
+
+
+# Marquage des pools et extinction des VMs des groupes disparus
+echo "Marquage des pools obsolètes"
+
+for POOL in $(pveum pool list --noborder | awk '{print $1}' | grep "$PREFIX"); do
+  GROUPNAME="${POOL#$PREFIX}"
+  GROUPFULL="$ADGROUP$GROUPNAME-$REALM"
+
+  # Utilisateur plus membre du groupe
+
+  if ! grep -q "$GROUPFULL" "$TMPFILE"; then
+    echo "$GROUPFULL supprimé"
+
+    # Creation du pool d'archivage si non vide
+    pveum pool add "$RMPREFIXGROUPNAME" --comment "Pool supprimé $GROUPNAME"
+
+    # Extinction des VMs appartenant au pool
+    VMLIST=$(pvesh get /pools/$POOL --noborder | grep members | grep -o '"id":"qemu/[0-9]\+"' | cut -d'/' -f2 | tr -d '"')
+
+    for VMID in $VMLIST; do
+      echo "Extinction et déplacement de la VM $VMID..."
+      qm stop "$VMID" 2>/dev/null
+      pveum pool modify "$RMPREFIX$GROUPNAME" --vms $VMID --allow-move 1
+    done
+
+    pveum pool delete $POOL
+  fi
+done
+
+rm $TMPFILE
+echo "Synchronisation terminée pour les groupe @$REALM ."

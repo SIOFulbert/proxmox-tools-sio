@@ -1,23 +1,36 @@
 #!/bin/bash
-# Script : sync-etudiant-pools
-# Date : 12/10/2025
+# Script : sync-personal-pools
+# Date : 06/12/2025
 # Version proxmox : 9.0
 # Description :
-#   - Crée un pool par étudiant (membre du groupe dans $GROUP) s’il n’existe pas
+#   - Crée un pool par membre du groupe dans $GROUP s’il n’existe pas
 #   - Assigne le role dans $ROLE
-#   - Marque les pools à supprimer pour les étudiants plus membres
+#   - Marque les pools à supprimer pour les membres n'étant plus dans le groupe
 #   - Eteint les VMs des etudiants plus membres
 # ----------------------------------------------------------------------
 
-REALM="adsio"                # Nom du realm AD dans Proxmox
-GROUP="proxmox-etudiant"     # Nom du groupe AD
-ROLE="etudiant"              # Rôle Proxmox attribué à chaque étudiant
-TMPFILE="/tmp/etudiants"     # Fichier temporaire de travail
-PREFIX="etudiant-"           # Préfixe des pool
-RMPREFIX="removed-"           # Préfixe des pool supprimés
+GROUP="proxmox-etudiant"     		# Nom du groupe AD
+ROLE="etudiant"              		# Rôle Proxmox attribué à chaque étudiant
+PREFIX="etudiant-"           		# Préfixe des pool
+REALM="adsio"                		# Nom du realm AD dans Proxmox
+RMPREFIX="removed-"         		# Préfixe des pool supprimés
+TMPFILE="/tmp/sync-personnal-pool"  # Fichier temporaire de travail
 
 
-echo "[$(date)] Synchronisation des pools étudiants ($GROUP@$REALM)"
+# Paramètre passé
+if [[ -n "$1" ]]; then
+    if [[ "$1" == "-h" ]]; then
+        echo "Usage: $0 [groupe]"
+        exit 0
+    else
+        GROUP="proxmox-$1"
+		ROLE="$1"
+		PREFIX="$1-"
+    fi
+fi
+
+
+echo "[$(date)] Synchronisation des pools des membres ($GROUP@$REALM)"
 
 #Vérification  de l'existence du groupe
 if ! pveum group list | grep -q "$GROUP-$REALM"; then
@@ -87,3 +100,5 @@ done
 
 rm $TMPFILE
 echo "Synchronisation terminée pour le groupe $GROUP@$REALM ."
+
+exit 0

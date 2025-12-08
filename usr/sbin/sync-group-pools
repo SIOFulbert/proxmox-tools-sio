@@ -1,6 +1,6 @@
 #!/bin/bash
-# Script : sync-groupes-pools
-# Date : 05/12/2025
+# Script : sync-group-pools
+# Date : 06/12/2025
 # Version proxmox : 9.0
 # Description :
 #   - Crée un pool par groupe commençant par proxmox-
@@ -13,7 +13,7 @@ REALM="adsio"               					 # Nom du realm AD dans Proxmox
 ADGROUP="proxmox-"     							 # Préfixe des groupes AD
 EXCLUDE="etudiant|referent|enseignant|admin"	 # Groupes exclus pour la création de pools
 ROLE="etudiant"              					 # Rôle Proxmox attribué au groupe
-TMPFILE="/tmp/groupes"    					 		# Fichier temporaire de travail
+TMPFILE="/tmp/sync-group-pools"   			 	 # Fichier temporaire de travail
 PREFIX="groupe-"           						 # Préfixe des pool
 RMPREFIX="removed-"          					 # Préfixe des pool supprimés
 

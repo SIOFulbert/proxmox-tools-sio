@@ -1,0 +1,40 @@
+#!/bin/bash
+# Script : cluster-maintenance
+# Date : 08/12/2025
+# Version proxmox : 9.0
+# Description :
+#   - Met tout le cluster en mode maintenance avec la paramètre enable
+#   - Sort tout le cluster du mode maintenance avec le paramètre disable
+# ----------------------------------------------------------------------
+
+ACTION="$1"
+
+
+if [[ "$ACTION" != "enable" && "$ACTION" != "disable" ]]; then
+    echo "Usage: $0 {enable|disable}"
+    echo "    enable : passe le cluster en maintenance"
+    echo "    disabled : sors le cluster de maintenance"
+    exit 1
+fi
+
+
+# Passage en mainteannce des noeuds
+if [[ "$ACTION" == "enable" ]]; then
+	echo "Passage des noeuds en maintenance"
+	for NODE in $(ha-manager status | grep "lrm" | grep -E "active|idle" | awk '{print $2}'); do
+		ha-manager crm-command node-maintenance enable $NODE
+		echo "$NODE entre en maintenance"
+	done
+fi
+
+
+# Sortie du mode maintenance des noeuds
+if [[ "$ACTION" == "disable" ]]; then
+        echo "Sortie des noeuds de maintenance"
+        for NODE in $(ha-manager status | grep "lrm" | grep -E "maintenance" | awk '{print $2}'); do
+                ha-manager crm-command node-maintenance disable $NODE
+                echo "$NODE sort de maintenance"
+        done
+fi
+
+exit 0

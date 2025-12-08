@@ -3,6 +3,7 @@
 ## Description
 Package proxmox-tools-sio contenant des scripts permettant de faciliter l'utilisation des cluster proxmox de BTS SIO de Centre-Val-de-Loir.
 
+- **cluster-maintenance :** Active ou désactive le mode maintenance pour tous les noeuds du cluster
 - **sync-personal-pool :** création de pools individuels pour tous les membres d'un groupe
 - **sync-groupes-pool :** création de pools communs pour tous les groupes "proxmox-\*"
 - **delete-removed-pool :** suppression définitive des pools nommés "removed-\*"
@@ -17,19 +18,24 @@ Réalisez un clone du dépôt :
 
 `git clone https://github.com/SIOFulbert/proxmox-tools-sio.git`
 
-Renommez le dossier **proxmox-tools-sio** en **proxmox-tools-sio_1.0-1_all** et utilisez la commande dpkg-deb pour créer le .deb :
+Renommez le dossier **proxmox-tools-sio** en **proxmox-tools-sio_1.1-1_all** et utilisez la commande dpkg-deb pour créer le .deb :
 
-`dpkg-deb --build proxmox-tools-sio_1.0-1_all`
+`dpkg-deb --build proxmox-tools-sio_1.1-1_all`
 
 ## Installation
 Installez le paquet normalement avec dpkg :
 
-`dpkg -i proxmox-tools-sio_1.0-1_all`
+`dpkg -i proxmox-tools-sio_1.1-1_all`
 
 Le package est généré dans le répertoire courant.
 
 
 ## Utilisation
+### cluster-maintenance enable|disable
+Ce script permet l'entrée en mode maintenance de tout les noeuds du cluster avec le paramètre "enable". Cela est utile pour permettre l'extinction totale du cluster.
+La sortie du mode maintenance de tous les noeuds est réalisé avec le paramètre "disable".
+
+
 ### sync-personal-pool [groupe]
 Ce script permet la création de pools personnels pour les nouveaux membres du groupe spécifié et commençant par « proxmox- » (le préfixe « proxmox- » n'est pas à spécifier dans le pamrètre). Il marque également les pools des membres qui n'existent plus dans le groupe comme supprimés.
 

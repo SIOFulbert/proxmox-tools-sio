@@ -19,7 +19,8 @@ Réalisez un clone du dépôt :
 `git clone https://github.com/SIOFulbert/proxmox-tools-sio.git`
 
 Rendez les scripts dans /usr/bin, exécutables :
-`chmod +x proxmox-tools-sio/usr/bin/*`
+
+`chmod +x proxmox-tools-sio/usr/sbin/*`
 
 Renommez le dossier **proxmox-tools-sio** en **proxmox-tools-sio_1.1-2_all** et utilisez la commande dpkg-deb pour créer le .deb :
 

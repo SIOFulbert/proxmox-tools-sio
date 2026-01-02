@@ -4,6 +4,7 @@
 Package proxmox-tools-sio contenant des scripts permettant de faciliter l'utilisation des cluster proxmox de BTS SIO de Centre-Val-de-Loir.
 
 - **cluster-maintenance :** Active ou désactive le mode maintenance pour tous les noeuds du cluster
+- **sync-iso :** Synchronise les images ISO vers les autres noeuds du cluster
 - **sync-personal-pool :** création de pools individuels pour tous les membres d'un groupe
 - **sync-groupes-pool :** création de pools communs pour tous les groupes "proxmox-\*"
 - **delete-removed-pool :** suppression définitive des pools nommés "removed-\*"
@@ -22,14 +23,14 @@ Rendez les scripts dans /usr/bin, exécutables :
 
 `chmod +x proxmox-tools-sio/usr/sbin/*`
 
-Renommez le dossier **proxmox-tools-sio** en **proxmox-tools-sio_1.1-2_all** et utilisez la commande dpkg-deb pour créer le .deb :
+Renommez le dossier **proxmox-tools-sio** en **proxmox-tools-sio_1.2-1_all** et utilisez la commande dpkg-deb pour créer le .deb :
 
-`dpkg-deb --build proxmox-tools-sio_1.1-2_all`
+`dpkg-deb --build proxmox-tools-sio_1.2-1_all`
 
 ## Installation
 Installez le paquet normalement avec dpkg :
 
-`dpkg -i proxmox-tools-sio_1.1-2_all`
+`dpkg -i proxmox-tools-sio_1.2-1_all`
 
 Le package est généré dans le répertoire courant.
 
@@ -38,6 +39,10 @@ Le package est généré dans le répertoire courant.
 ### cluster-maintenance enable|disable
 Ce script permet l'entrée en mode maintenance de tout les noeuds du cluster avec le paramètre "enable". Cela est utile pour permettre l'extinction totale du cluster.
 La sortie du mode maintenance de tous les noeuds est réalisé avec le paramètre "disable".
+
+
+### sync-iso IDSTOCKAGE
+Ce script permet d'envoyer les images ISO présentes dans le stockage IDSTOCKAGE vers les autres noeuds du cluster.
 
 
 ### sync-personal-pool [groupe]

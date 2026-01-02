@@ -1,0 +1,38 @@
+#!/bin/bash
+# Script : sync-iso
+# Date : 02/01/2026
+# Version proxmox : 9.1
+# Description : Synchronise les images ISO d'un stockage proxmox
+# ----------------------------------------------------------------------
+
+
+# Paramètre passé
+if [ -z "$1" ]; then
+	echo "Usage: $0 PVESTORAGE"
+	exit 1
+fi
+
+STORAGE="$1"
+LOCALNODE=$(hostname)
+STORAGE_PATH=$(grep -A5 "^dir: $STORAGE$" /etc/pve/storage.cfg | awk '/path/ {print $2}')
+ISO_PATH="$STORAGE_PATH/template/iso/"
+
+if [ ! -d "$ISO_PATH" ]; then
+    echo "Erreur : le répertoire $ISO_PATH n'existe pas"
+    exit 1
+fi
+
+# Synchronisation des noeuds en fonctionnement
+for NODE in $(pvecm nodes | awk 'NR>4 {gsub(/\(local\)/,"",$3); print $3}'); do
+    if [ "$NODE" = "$LOCALNODE" ]; then
+        continue
+    fi
+
+	echo "Synchronisation sur $NODE"
+	
+	rsync -av --ignore-existing "$ISO_PATH" "$NODE:$ISO_PATH"
+done
+
+echo "Stockage $STORAGE synchronisé"
+	
+exit 0
